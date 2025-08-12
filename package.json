@@ -1,0 +1,29 @@
+{
+  "name": "nss",
+  "version": "1.0.2",
+  "description": "NSS",
+  "main": "Nss.js",
+  "scripts": {
+    "start": "node Nss.js",
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "update-major": "npm version major",
+    "update-minor": "npm version minor",
+    "update-patch": "npm version patch"
+  },
+  "author": "Mr. Nodemon",
+  "license": "ISC",
+  "dependencies": {
+    "axios": "^1.7.2",
+    "bcryptjs": "^3.0.2",
+    "body-parser": "^2.2.0",
+    "cors": "^2.8.5",
+    "dotenv": "^16.4.5",
+    "ejs": "^3.1.10",
+    "express": "^4.19.2",
+    "express-rate-limit": "^8.0.1",
+    "express-session": "^1.18.1",
+    "jsonwebtoken": "^9.0.2",
+    "moment": "^2.30.1",
+    "mysql2": "^3.14.3"
+  }
+}

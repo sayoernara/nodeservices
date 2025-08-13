@@ -117,18 +117,66 @@ app.get("/sessioncheck", async (req, res) => {
       });
     } catch (err) {
       console.error("Token decode error:", err);
-      res.clearCookie("accessToken");
-      res.clearCookie("refreshToken");
+      res.clearCookie("accessToken", {
+        httpOnly: true,
+        secure: process.env.NODE_ENV === "production",
+        sameSite: "strict"
+      });
+      res.clearCookie("refreshToken", {
+        httpOnly: true,
+        secure: process.env.NODE_ENV === "production",
+        sameSite: "strict"
+      });
       return res.status(403).json({ message: "Invalid token signature" });
     }
   } else {
-    res.clearCookie("accessToken");
-    res.clearCookie("refreshToken");
+    res.clearCookie("accessToken", {
+        httpOnly: true,
+        secure: process.env.NODE_ENV === "production",
+        sameSite: "strict"
+      });
+      res.clearCookie("refreshToken", {
+        httpOnly: true,
+        secure: process.env.NODE_ENV === "production",
+        sameSite: "strict"
+      });
     return res
       .status(403)
       .json({ message: "Invalid or expired token" });
   }
 });
+
+app.get("/logout", async (req, res) => {
+  try {
+    let accessToken =
+      req.headers["authorization"]?.split(" ")[1] || req.cookies.accessToken;
+
+    if (!accessToken) {
+      return res.status(401).json({ message: "No token provided" });
+    }
+
+    const response = await dn.revokeSession(accessToken);
+    if (response === "revoke success") {
+      res.clearCookie("accessToken", {
+        httpOnly: true,
+        secure: process.env.NODE_ENV === "production",
+        sameSite: "strict"
+      });
+      res.clearCookie("refreshToken", {
+        httpOnly: true,
+        secure: process.env.NODE_ENV === "production",
+        sameSite: "strict"
+      });
+      return res.status(200).json({ message: "Logout success" });
+    } else {
+      return res.status(400).json({ message: "Failed to revoke session" });
+    }
+  } catch (err) {
+    console.error("Logout error:", err);
+    return res.status(500).json({ message: "Server error" });
+  }
+});
+
 
 
 const HOST = process.env.HOST;

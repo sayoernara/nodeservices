@@ -22,8 +22,8 @@ async function insertSession(username, accessToken, refreshToken, ipAddress, use
       );
       revokeIPAddress = rows[0].ip_address;
       revoke = true;
-    }else{
-        revoke = false;
+    } else {
+      revoke = false;
     }
 
     await dbnss.execute(
@@ -33,10 +33,10 @@ async function insertSession(username, accessToken, refreshToken, ipAddress, use
       [username, accessToken, refreshToken, ipAddress, userAgent, expiresAt]
     );
 
-    if(revoke === true){
-        return {revoke, revokeIPAddress};
-    }else{
-        return revoke;
+    if (revoke === true) {
+      return { revoke, revokeIPAddress };
+    } else {
+      return revoke;
     }
   } catch (error) {
     console.error('insertSession error:', error);
@@ -47,17 +47,13 @@ async function insertSession(username, accessToken, refreshToken, ipAddress, use
 async function checkSession(accessToken) {
   try {
     const [rows] = await dbnss.execute(
-      `SELECT * FROM user_sessions 
-       WHERE access_token = ? 
-         AND login_time >= CURDATE() 
-         AND login_time < CURDATE() + INTERVAL 1 DAY 
-         AND is_revoked = 0`,
+      `SELECT * FROM user_sessions WHERE access_token = ? AND login_time >= CURDATE() AND login_time < CURDATE() + INTERVAL 1 DAY AND is_revoked = 0`,
       [accessToken]
     );
 
     if (rows.length > 0) {
       return 'valid';
-    }else{
+    } else {
       return 'invalid';
     }
   } catch (error) {
@@ -66,4 +62,18 @@ async function checkSession(accessToken) {
   }
 }
 
-module.exports = { insertSession, checkSession };
+async function revokeSession(accessToken) {
+  try {
+    const [rows] = await dbnss.execute(
+      `UPDATE user_sessions SET is_revoke = 1 WHERE access_token = ?`,
+      [accessToken]
+    );
+
+    return 'revoke success';
+  } catch (error) {
+    console.error('revokeSession error:', error);
+    throw error;
+  }
+}
+
+module.exports = { insertSession, checkSession, revokeSession };

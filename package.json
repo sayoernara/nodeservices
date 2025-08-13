@@ -1,6 +1,6 @@
 {
   "name": "nss",
-  "version": "1.0.3",
+  "version": "1.1.0",
   "description": "NSS",
   "main": "Nss.js",
   "scripts": {

@@ -16,7 +16,7 @@ app.get('/ping', (req, res) => {
 });
 
 app.get('/', (req, res) => {
-  res.sendStatus(204);
+  res.status(200).json({message:`Node Single Services`});
 });
 
 app.post("/login", limiter, async (req, res) => {

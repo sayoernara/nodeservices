@@ -44,4 +44,26 @@ async function insertSession(username, accessToken, refreshToken, ipAddress, use
   }
 }
 
-module.exports = { insertSession };
+async function checkSession(accessToken) {
+  try {
+    const [rows] = await dbnss.execute(
+      `SELECT * FROM user_sessions 
+       WHERE access_token = ? 
+         AND login_time >= CURDATE() 
+         AND login_time < CURDATE() + INTERVAL 1 DAY 
+         AND is_revoked = 0`,
+      [accessToken]
+    );
+
+    if (rows.length > 0) {
+      return 'valid';
+    }else{
+      return 'invalid';
+    }
+  } catch (error) {
+    console.error('insertSession error:', error);
+    throw error;
+  }
+}
+
+module.exports = { insertSession, checkSession };

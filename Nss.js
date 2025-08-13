@@ -100,18 +100,32 @@ app.post("/login", limiter, async (req, res) => {
 });
 
 app.get("/sessioncheck", async (req, res) => {
-  let accessToken = req.headers['authorization']?.split(' ')[1] || req.cookies.accessToken;
+  let accessToken =
+    req.headers["authorization"]?.split(" ")[1] || req.cookies.accessToken;
+
   if (!accessToken) {
     return res.status(401).json({ message: "No token provided" });
-  } else {
+  }
+
+  const result = await dn.checkSession(accessToken);
+  if (result === "valid") {
     try {
       const decoded = jwt.verify(accessToken, process.env.ACCESS_TOKEN_SECRET);
-      return res.status(200).json({ message: "Session valid", user: decoded });
+      return res.status(200).json({
+        message: "Session valid",
+        user: decoded
+      });
     } catch (err) {
-      return res.status(403).json({ message: "Invalid or expired token" });
+      console.error("Token decode error:", err);
+      return res.status(403).json({ message: "Invalid token signature" });
     }
+  } else {
+    return res
+      .status(403)
+      .json({ message: "Invalid or expired token" });
   }
-})
+});
+
 
 const HOST = process.env.HOST;
 const PORT = process.env.PORT || 3000;

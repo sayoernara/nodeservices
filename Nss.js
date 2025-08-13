@@ -117,9 +117,13 @@ app.get("/sessioncheck", async (req, res) => {
       });
     } catch (err) {
       console.error("Token decode error:", err);
+      res.clearCookie("accessToken");
+      res.clearCookie("refreshToken");
       return res.status(403).json({ message: "Invalid token signature" });
     }
   } else {
+    res.clearCookie("accessToken");
+    res.clearCookie("refreshToken");
     return res
       .status(403)
       .json({ message: "Invalid or expired token" });

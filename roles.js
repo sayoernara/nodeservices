@@ -5,7 +5,7 @@ var jwt = require('jsonwebtoken')
 app.use(express.json())
 
 const authToken = (req, res, next) => {
-  const authHeader = req.headers['authorization'];
+  const authHeader = req.headers['authorization']?.split(' ')[1] || req.cookies.accessToken;
 
   if (!authHeader || !authHeader.startsWith('Bearer ')) {
     console.log('Token Forbidden!');

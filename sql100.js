@@ -1,4 +1,4 @@
-const { dbnss, db100 } = require('./dbconfig');
+const { db100 } = require('./dbconfig');
 
 async function findUser(username) {
   try {

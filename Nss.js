@@ -7,7 +7,7 @@ const jwt = require('jsonwebtoken');
 
 
 var dm = require('./sql100.js');
-var roles  = require('./roles.js');
+var roles = require('./roles.js');
 var limiter = require('./limiter.js');
 
 
@@ -22,7 +22,7 @@ app.get('/', (req, res) => {
 app.post("/login", limiter, async (req, res) => {
   const { username, password } = req.body;
   const user = await dm.findUser(username);
-   if (!user) {
+  if (!user) {
     return res.status(401).json({ message: "Invalid credentials" });
   }
   const match = await bcrypt.compare(password, user.hashed_pass);
@@ -39,10 +39,23 @@ app.post("/login", limiter, async (req, res) => {
     { expiresIn: '24h' }
   );
 
-  return res.status(201).json({
+  res.cookie("accessToken", accessToken, {
+    httpOnly: true,
+    secure: process.env.NODE_ENV === "production",
+    sameSite: "strict",
+    maxAge: 24 * 60 * 60 * 1000 // 1 hari
+  });
+
+  res.cookie("refreshToken", refreshToken, {
+    httpOnly: true,
+    secure: process.env.NODE_ENV === "production",
+    sameSite: "strict",
+    maxAge: 15 * 60 * 1000 // 15 menit
+  });
+
+  return res.status(200).json({
     authData: safeUser,
-    accessToken,
-    refreshToken
+    message: "Login berhasil"
   });
 });
 

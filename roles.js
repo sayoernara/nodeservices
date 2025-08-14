@@ -1,38 +1,46 @@
 const express = require('express')
-const app = express()
-var jwt = require('jsonwebtoken')
+const app = express();
+var jwt = require('jsonwebtoken');
+var dn = require('./sqlnss.js');
 
 app.use(express.json())
 
-const authToken = (req, res, next) => {
-  const authHeader = req.headers['authorization']?.split(' ')[1] || req.cookies.accessToken;
-
-  if (!authHeader || !authHeader.startsWith('Bearer ')) {
-    console.log('Token Forbidden!');
-    return res.sendStatus(401); // Unauthorized
-  }
-
-  const token = authHeader && authHeader.split(' ')[1];
-
-  if (!token) {
-    console.log('Token Forbidden!');
-    return res.sendStatus(401); // Unauthorized
-  }
-
-  jwt.verify(token, process.env.ACCESS_TOKEN_SECRET, (err, profile) => {
-    if (err) {
-      console.log(`JWT Error: ${err.name} - ${err.message}`);
-
-      if (err.name === 'TokenExpiredError') {
-        return res.status(401).json({ message: 'Token expired, please re-authenticate' });
-      }
-
-      return res.status(403).json({ message: 'Invalid token' }); // JsonWebTokenError
-    }
-
-    req.user = profile; // Simpan decoded token ke req.user
-    next();
+function clearCookies(res) {
+  res.clearCookie("accessToken", {
+    httpOnly: true,
+    secure: process.env.NODE_ENV === "production",
+    sameSite: "strict"
   });
+  res.clearCookie("refreshToken", {
+    httpOnly: true,
+    secure: process.env.NODE_ENV === "production",
+    sameSite: "strict"
+  });
+}
+
+const sessionCheckMiddleware = async (req, res, next) => {
+  let accessToken =
+    req.headers["authorization"]?.split(" ")[1] || req.cookies.accessToken;
+
+  if (!accessToken) {
+    return res.status(401).json({ message: "No token provided" });
+  }
+
+  const result = await dn.checkSession(accessToken);
+  if (result === "valid") {
+    try {
+      const decoded = jwt.verify(accessToken, process.env.ACCESS_TOKEN_SECRET);
+      req.user = decoded;
+      return next();
+    } catch (err) {
+      console.error("Token decode error:", err);
+      clearCookies(res);
+      return res.status(403).json({ message: "Invalid token signature" });
+    }
+  } else {
+    clearCookies(res);
+    return res.status(403).json({ message: "Invalid or expired token" });
+  }
 };
 
 function generateRefreshToken(refreshToken) {
@@ -50,5 +58,5 @@ function generateAccessToken(user) {
 }
 
 module.exports = {
-  authToken, generateAccessToken, generateRefreshToken
+  sessionCheckMiddleware, generateAccessToken, generateRefreshToken
 };

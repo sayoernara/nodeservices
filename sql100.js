@@ -1,21 +1,20 @@
 const { db100 } = require('./dbconfig');
+const fs = require('fs');
+const path = require('path');
+const q = JSON.parse(
+  fs.readFileSync(path.join(__dirname, './query/100.sql'), 'utf8')
+);
 
 async function findUser(username) {
   try {
-    const [rows] = await db100.execute(
-      `SELECT * FROM akun WHERE username = ?`,
-      [username] 
-    );
+    const [rows] = await db100.execute(q.auth.searchUsername, [username]);
 
     if (!rows.length) {
       return null;
     }
 
     const data = rows[0];
-    const [infoRows] = await db100.execute(
-      `SELECT a.nama, a.username, c.role FROM akun as a INNER JOIN akun_has_role as b ON a.id_akun = b.id_akun INNER JOIN role as c ON b.id_role = c.id_role WHERE a.id_akun = ?`,
-      [data.id_akun]
-    );
+    const [infoRows] = await db100.execute(q.auth.userInfo, [data.id_akun]);
 
     if (infoRows.length) {
       data.info = infoRows[0];
@@ -31,5 +30,15 @@ async function findUser(username) {
   }
 }
 
+async function getGoodsList(){
+  try{
+    const goodslist = await db100.execute(q.goods.goodsList);
+    return goodslist;
+  } catch (error) {
+    console.error('getGoodsList error:', error);
+    throw error;
+  }
+}
 
-module.exports = { findUser };
+
+module.exports = { findUser, getGoodsList };

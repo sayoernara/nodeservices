@@ -1,24 +1,18 @@
 const { dbnss } = require('./dbconfig');
+const fs = require('fs');
+const path = require('path');
+const s = JSON.parse(
+  fs.readFileSync(path.join(__dirname, './query/nss.sql'), 'utf8')
+);
 
 async function insertSession(username, accessToken, refreshToken, ipAddress, userAgent, expiresAt) {
   try {
     var revoke;
     var revokeIPAddress;
-    const [rows] = await dbnss.execute(
-      `SELECT * FROM user_sessions 
-       WHERE username = ? 
-         AND login_time >= CURDATE() 
-         AND login_time < CURDATE() + INTERVAL 1 DAY 
-         AND is_revoked = 0`,
-      [username]
-    );
+    const [rows] = await dbnss.execute(s.auth.addSession, [username]);
 
     if (rows.length > 0) {
-      await dbnss.execute(
-        `UPDATE user_sessions 
-         SET is_revoked = 1 
-         WHERE id = ?`,
-        [rows[0].id]
+      await dbnss.execute(s.auth.revokeUser,[rows[0].id]
       );
       revokeIPAddress = rows[0].ip_address;
       revoke = true;
@@ -26,12 +20,7 @@ async function insertSession(username, accessToken, refreshToken, ipAddress, use
       revoke = false;
     }
 
-    await dbnss.execute(
-      `INSERT INTO user_sessions 
-       (username, access_token, refresh_token, ip_address, user_agent, login_time, expires_at, is_revoked) 
-       VALUES (?, ?, ?, ?, ?, NOW(), ?, 0)`,
-      [username, accessToken, refreshToken, ipAddress, userAgent, expiresAt]
-    );
+    await dbnss.execute(s.auth.addSession, [username, accessToken, refreshToken, ipAddress, userAgent, expiresAt]);
 
     if (revoke === true) {
       return { revoke, revokeIPAddress };
@@ -46,10 +35,7 @@ async function insertSession(username, accessToken, refreshToken, ipAddress, use
 
 async function checkSession(accessToken) {
   try {
-    const [rows] = await dbnss.execute(
-      `SELECT * FROM user_sessions WHERE access_token = ? AND login_time >= CURDATE() AND login_time < CURDATE() + INTERVAL 1 DAY AND is_revoked = 0`,
-      [accessToken]
-    );
+    const [rows] = await dbnss.execute(s.auth.checkSessionByAccess, [accessToken]);
 
     if (rows.length > 0) {
       return 'valid';
@@ -64,11 +50,7 @@ async function checkSession(accessToken) {
 
 async function revokeSession(accessToken) {
   try {
-    const [rows] = await dbnss.execute(
-      `UPDATE user_sessions SET is_revoke = 1 WHERE access_token = ?`,
-      [accessToken]
-    );
-
+    const [rows] = await dbnss.execute(s.auth.revokeAccess, [accessToken]);
     return 'revoke success';
   } catch (error) {
     console.error('revokeSession error:', error);

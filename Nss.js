@@ -1,4 +1,5 @@
 const express = require("express");
+const helmet = require('helmet');
 const http = require("http");
 const { Server } = require("socket.io");
 const app = express();
@@ -6,6 +7,16 @@ const server = http.createServer(app);
 const io = new Server(server, {
   cors: { origin: "*" }
 });
+const isProd = process.env.NODE_ENV === 'production';
+
+app.use(helmet({
+  contentSecurityPolicy: false, 
+  crossOriginEmbedderPolicy: false, 
+  referrerPolicy: { policy: 'no-referrer' },
+  hsts: isProd ? { maxAge: 15552000, includeSubDomains: true, preload: false } : false,
+}));
+
+app.disable('x-powered-by'); 
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 const bcrypt = require("bcryptjs");
@@ -15,6 +26,7 @@ var dm = require('./sql100.js');
 var dn = require('./sqlnss.js');
 var roles = require('./roles.js');
 var limiter = require('./limiter.js');
+var cashier = require('./routes/cashier.js');
 
 const sessionSockets = new Map();
 io.on("connection", (socket) => {
@@ -36,6 +48,9 @@ io.on("connection", (socket) => {
     }
   });
 });
+
+// ROUTER
+app.use('/cashier', cashier);
 
 app.get('/ping', (req, res) => {
   res.status(200).send("pong");
@@ -176,11 +191,23 @@ app.get("/logout", async (req, res) => {
     return res.status(500).json({ message: "Server error" });
   }
 });
+// END ROUTER
 
 
+// ====== 404 ======
+app.use((req, res, next) => {
+  res.status(404).json({ message: "Not found" });
+});
 
+// ====== Error handler ======
+app.use((err, req, res, next) => {
+  console.error(err.stack || err);
+  res.status(500).json({ message: "Internal server error" });
+});
+
+// ====== Start server ======
 const HOST = process.env.HOST;
-const PORT = process.env.PORT || 3000;
-app.listen(PORT, () => {
+const PORT = process.env.PORT;
+server.listen(PORT, () => {
   console.log(`Server listening at http://${HOST}:${PORT}`);
 });

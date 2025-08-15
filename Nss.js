@@ -4,6 +4,8 @@ const http = require("http");
 const { Server } = require("socket.io");
 const app = express();
 const server = http.createServer(app);
+const cookieParser = require('cookie-parser');
+const cors = require('cors')
 const io = new Server(server, {
   cors: { origin: "*" }
 });
@@ -16,6 +18,24 @@ app.use(helmet({
   hsts: isProd ? { maxAge: 15552000, includeSubDomains: true, preload: false } : false,
 }));
 
+const allowedOrigins = [
+  "http://192.168.1.27:5000",  
+  "http://182.253.186.98",
+  "https://cashier.sayoernara.com" 
+];
+
+app.use(cookieParser());
+app.use(cors({
+  origin: function (origin, callback) {
+    if (!origin) return callback(null, true);
+    if (allowedOrigins.includes(origin)) {
+      callback(null, true);
+    } else {
+      callback(new Error("Origin tidak diizinkan oleh CORS"));
+    }
+  },
+  credentials: true 
+}));
 app.disable('x-powered-by'); 
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
@@ -29,7 +49,7 @@ var cashier = require('./routes/cashier.js');
 
 const sessionSockets = new Map();
 io.on("connection", (socket) => {
-  console.log(`🔌 Client connected: ${socket.id}`);
+  console.log(`Client connected: ${socket.id}`);
 
   socket.on("registerSession", ({ username, ipAddress }) => {
     const key = `${username}|${ipAddress}`;
@@ -49,7 +69,7 @@ io.on("connection", (socket) => {
 });
 
 // ROUTER
-app.use('/cashier', cashier);
+app.use('/cashier', cors(), cashier);
 
 app.get('/ping', (req, res) => {
   res.status(200).send("pong");
@@ -94,18 +114,18 @@ app.post("/login", async (req, res) => {
   }
 
   res.cookie("accessToken", accessToken, {
-    httpOnly: true,
-    secure: process.env.NODE_ENV === "production",
-    sameSite: "strict",
-    maxAge: 24 * 60 * 60 * 1000 // 1 hari
-  });
+  httpOnly: true,
+  secure: process.env.NODE_ENV === "production" ? true : false, 
+  sameSite: process.env.NODE_ENV === "production" ? "none" : "none",
+  maxAge: 24 * 60 * 60 * 1000 
+});
 
-  res.cookie("refreshToken", refreshToken, {
-    httpOnly: true,
-    secure: process.env.NODE_ENV === "production",
-    sameSite: "strict",
-    maxAge: 15 * 60 * 1000 // 15 menit
-  });
+res.cookie("refreshToken", refreshToken, {
+  httpOnly: true,
+  secure: process.env.NODE_ENV === "production" ? true : false,
+  sameSite: process.env.NODE_ENV === "production" ? "none" : "none",
+  maxAge: 15 * 60 * 1000 
+});
 
   return res.status(200).json({
     authData: safeUser,
@@ -114,9 +134,7 @@ app.post("/login", async (req, res) => {
 });
 
 app.get("/sessioncheck", async (req, res) => {
-  let accessToken =
-    req.headers["authorization"]?.split(" ")[1] || req.cookies?.accessToken || null;
-
+  const accessToken = req.cookies?.accessToken || null;
   if (!accessToken) {
     return res.status(401).json({ message: "No token provided" });
   }
@@ -163,7 +181,7 @@ app.get("/sessioncheck", async (req, res) => {
 app.get("/logout", async (req, res) => {
   try {
     let accessToken =
-      req.headers["authorization"]?.split(" ")[1] || req.cookies.accessToken;
+      req.headers["authorization"]?.split(" ")[1] || req.cookies?.accessToken || null;
 
     if (!accessToken) {
       return res.status(401).json({ message: "No token provided" });

@@ -19,8 +19,7 @@ function clearCookies(res) {
 }
 
 const sessionCheckMiddleware = async (req, res, next) => {
-  let accessToken =
-    req.headers["authorization"]?.split(" ")[1] || req.cookies?.accessToken || null;
+  const accessToken = req.cookies?.accessToken || null;
     
   if (!accessToken) {
     return res.status(401).json({ message: "No token provided" });

@@ -13,8 +13,8 @@ router.use(express.urlencoded({
 }));
 
 router
-    .route('/goodslist', roles.sessionCheckMiddleware)
-    .get(async (req, res) => {
+    .route('/goodslist')
+    .get(roles.sessionCheckMiddleware, async (req, res) => {
         try{
             const goodslist = await dm.getGoodsList();
             res.status(200).json({goods: goodslist});

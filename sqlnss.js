@@ -9,7 +9,7 @@ async function insertSession(username, accessToken, refreshToken, ipAddress, use
   try {
     var revoke;
     var revokeIPAddress;
-    const [rows] = await dbnss.execute(s.auth.addSession, [username]);
+    const [rows] = await dbnss.execute(s.auth.checkSessionToday, [username]);
 
     if (rows.length > 0) {
       await dbnss.execute(s.auth.revokeUser,[rows[0].id]

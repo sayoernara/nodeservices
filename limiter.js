@@ -1,17 +1,16 @@
-const rateLimit = require("express-rate-limit");
+const rateLimit = require('express-rate-limit');
 
 const limiter = rateLimit({
-  windowMs: 15 * 60 * 1000,
-  max: 5,
-  handler: (req, res) => {
-    res.status(429).json({
-      error: true,
-      code: "RATE_LIMITED",
-      retryAfter: `${Math.ceil(15)} minutes`
-    });
-  },
-  standardHeaders: true,
+  windowMs: 60 * 1000, 
+  limit: 5,
+  standardHeaders: 'draft-7',
   legacyHeaders: false,
+  message: { message: 'Terlalu banyak percobaan login. Coba lagi dalam 1 menit.' },
+  keyGenerator: (req /*, res*/) => {
+    const ip = req.ip || req.connection?.remoteAddress || 'unknown';
+    const user = req.body?.username || 'unknown';
+    return `${ip}:${user}`;
+  },
 });
 
-module.exports = limiter;
+module.exports = { limiter };

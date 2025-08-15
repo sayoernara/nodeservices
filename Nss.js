@@ -25,7 +25,6 @@ const jwt = require('jsonwebtoken');
 var dm = require('./sql100.js');
 var dn = require('./sqlnss.js');
 var roles = require('./roles.js');
-var limiter = require('./limiter.js');
 var cashier = require('./routes/cashier.js');
 
 const sessionSockets = new Map();
@@ -60,7 +59,7 @@ app.get('/', (req, res) => {
   res.status(200).json({ message: `Node Single Services` });
 });
 
-app.post("/login", limiter, async (req, res) => {
+app.post("/login", async (req, res) => {
   const { username, password } = req.body;
   const user = await dm.findUser(username);
   if (!user) {
@@ -116,7 +115,7 @@ app.post("/login", limiter, async (req, res) => {
 
 app.get("/sessioncheck", async (req, res) => {
   let accessToken =
-    req.headers["authorization"]?.split(" ")[1] || req.cookies.accessToken;
+    req.headers["authorization"]?.split(" ")[1] || req.cookies?.accessToken || null;
 
   if (!accessToken) {
     return res.status(401).json({ message: "No token provided" });

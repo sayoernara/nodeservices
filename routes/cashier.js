@@ -24,4 +24,17 @@ router
 		}
     })
 
+router
+    .route('/goodspricepergram')
+    .get(roles.sessionCheckMiddleware, async (req, res) => {
+        try{
+            const id_item = req.query.id_item;
+            const goodsprice = await dm.getGoodsPricePerGram(id_item);
+            res.status(200).json({price: goodsprice});
+        }catch (error) {
+			console.error('Error get good price per gram:', error);
+			res.status(500).json({message: 'Error when try to get goods price per gram'});
+		}
+    })
+
 module.exports = router;

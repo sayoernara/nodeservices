@@ -40,5 +40,15 @@ async function getGoodsList(){
   }
 }
 
+async function getGoodsPricePerGram(id_item){
+  try{
+    const goodslist = await db100.execute(q.goods.goodsPricePerGram, [id_item]);
+    return goodslist;
+  } catch (error) {
+    console.error('getGoodsList error:', error);
+    throw error;
+  }
+}
 
-module.exports = { findUser, getGoodsList };
+
+module.exports = { findUser, getGoodsList, getGoodsPricePerGram };

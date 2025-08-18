@@ -80,8 +80,8 @@ app.get('/', (req, res) => {
 });
 
 app.post("/login", async (req, res) => {
-  const { username, password } = req.body;
-  const user = await dm.findUser(username);
+  const { username, password, roleid } = req.body;
+  const user = await dm.findUser(username, roleid);
   if (!user) {
     return res.status(401).json({ message: "Invalid credentials" });
   }

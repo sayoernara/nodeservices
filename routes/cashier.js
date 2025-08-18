@@ -37,4 +37,16 @@ router
 		}
     })
 
+router
+    .route('/countprice')
+    .post(roles.sessionCheckMiddleware, async (req, res) => {
+        try{
+            const cart = req.body.cart;
+            const goodsprice = await dm.countPricePerItem(cart);
+            res.status(200).json({cart: goodsprice});
+        }catch (error) {
+			console.error('Error count price:', error);
+			res.status(500).json({message: 'Error count price', log: error});
+		}
+    })
 module.exports = router;

@@ -19,7 +19,9 @@ app.use(helmet({
 }));
 
 const allowedOrigins = [
-  "http://192.168.1.27:5000",  
+  "http://192.168.1.27:5000",
+  "http://192.168.43.164:5000",
+  "http://192.168.43.247:5000",
   "http://182.253.186.98",
   "https://cashier.sayoernara.com" 
 ];
@@ -51,10 +53,14 @@ const sessionSockets = new Map();
 io.on("connection", (socket) => {
   console.log(`Client connected: ${socket.id}`);
 
-  socket.on("registerSession", ({ username, ipAddress }) => {
+   socket.on("registerSession", ({ username, ipAddress }, callback) => {
     const key = `${username}|${ipAddress}`;
     sessionSockets.set(key, socket.id);
     console.log(`Registered session ${key} -> ${socket.id}`);
+    
+    if (callback) {
+      callback({ success: true, message: "Registrasi session berhasil" });
+    }
   });
 
   socket.on("disconnect", () => {
@@ -69,7 +75,7 @@ io.on("connection", (socket) => {
 });
 
 // ROUTER
-app.use('/cashier', cors(), cashier);
+app.use('/cashier', cashier);
 
 app.get('/ping', (req, res) => {
   res.status(200).send("pong");

@@ -17,6 +17,7 @@ router
     .get(roles.sessionCheckMiddleware, async (req, res) => {
         try{
             const goodslist = await dm.getGoodsList();
+            res.setHeader("Cache-Control", "no-store");
             res.status(200).json({goods: goodslist});
         }catch (error) {
 			console.error('Error get goodlist:', error);

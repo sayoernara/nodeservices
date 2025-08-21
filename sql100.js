@@ -50,7 +50,7 @@ async function getGoodsPricePerGram(id_item){
   }
 }
 
-// fungsi hitungHarga tetap seperti yang kamu punya
+
 function hitungHarga(weight, master) {
   master.sort((a,b) => b.berat - a.berat);
 
@@ -63,36 +63,31 @@ function hitungHarga(weight, master) {
     if (qty > 0) {
       total += qty * m.harga;
       sisa -= qty * m.berat;
-      detail.push({berat: m.berat, harga: m.harga, qty, subtotal: qty * m.harga});
+      detail.push({berat: m.berat, harga: m.harga, qty, subtotal: qty * m.harga, idppg: m.idppg,});
     }
   }
 
   return { total, detail };
 }
 
-// fungsi countPricePerItem
 async function countPricePerItem(cart) {
   try {
     let results = [];
 
     for (let item of cart) {
-      // ambil master harga dari DB berdasarkan id_item
       const [rows] = await db100.execute(q.goods.getPriceByItem, [item.id_item]);
 
-      // rows akan berupa array [{berat:1000, harga:7000}, {berat:500, harga:4000}, ...]
       const master = rows.map(r => ({
         berat: r.berat,
-        harga: r.harga
+        harga: r.harga,
+        idppg: r.id_ppg
       }));
 
-      // hitung harga dengan fungsi hitungHarga
       const { total, detail } = hitungHarga(item.totalWeight, master);
-
-      // push hasilnya ke array result
       results.push({
-        ...item,            // biar masih ada comodity, id_item, totalWeight
-        totalPrice: total,  // hasil hitung
-        breakdown: detail   // detail breakdown (opsional untuk ditampilkan di UI)
+        ...item,           
+        totalPrice: total, 
+        breakdown: detail 
       });
     }
 

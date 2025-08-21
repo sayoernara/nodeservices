@@ -50,4 +50,17 @@ router
 			res.status(500).json({message: 'Error count price', log: error});
 		}
     })
+
+router
+    .route('/saveTransaction')
+    .post(roles.sessionCheckMiddleware, async (req, res) => {
+        try{
+            const transaction = req.body.transaction;
+            res.status(200).json({yourTrans: transaction});
+        }catch (error) {
+			console.error('Error save transaction:', error);
+			res.status(500).json({message: 'Error save transaction', log: error});
+		}
+    })
+
 module.exports = router;

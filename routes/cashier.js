@@ -52,11 +52,12 @@ router
     })
 
 router
-    .route('/saveTransaction')
+    .route('/savetransaction')
     .post(roles.sessionCheckMiddleware, async (req, res) => {
         try{
             const transaction = req.body.transaction;
-            res.status(200).json({yourTrans: transaction});
+            const saveSellTransaction = await dm.saveSellTransaction(transaction);
+            res.status(200).json({message: saveSellTransaction});
         }catch (error) {
 			console.error('Error save transaction:', error);
 			res.status(500).json({message: 'Error save transaction', log: error});

@@ -30,8 +30,8 @@ async function findUser(username, roleid) {
   }
 }
 
-async function getGoodsList(){
-  try{
+async function getGoodsList() {
+  try {
     const goodslist = await db100.execute(q.goods.goodsList);
     return goodslist;
   } catch (error) {
@@ -40,8 +40,8 @@ async function getGoodsList(){
   }
 }
 
-async function getGoodsPricePerGram(id_item){
-  try{
+async function getGoodsPricePerGram(id_item) {
+  try {
     const goodslist = await db100.execute(q.goods.goodsPricePerGram, [id_item]);
     return goodslist;
   } catch (error) {
@@ -52,7 +52,7 @@ async function getGoodsPricePerGram(id_item){
 
 
 function hitungHarga(weight, master) {
-  master.sort((a,b) => b.berat - a.berat);
+  master.sort((a, b) => b.berat - a.berat);
 
   let sisa = weight;
   let total = 0;
@@ -63,7 +63,7 @@ function hitungHarga(weight, master) {
     if (qty > 0) {
       total += qty * m.harga;
       sisa -= qty * m.berat;
-      detail.push({berat: m.berat, harga: m.harga, qty, subtotal: qty * m.harga, idppg: m.idppg,});
+      detail.push({ berat: m.berat, harga: m.harga, qty, subtotal: qty * m.harga, idppg: m.idppg, });
     }
   }
 
@@ -85,9 +85,9 @@ async function countPricePerItem(cart) {
 
       const { total, detail } = hitungHarga(item.totalWeight, master);
       results.push({
-        ...item,           
-        totalPrice: total, 
-        breakdown: detail 
+        ...item,
+        totalPrice: total,
+        breakdown: detail
       });
     }
 
@@ -98,5 +98,67 @@ async function countPricePerItem(cart) {
   }
 }
 
+async function saveSellTransaction(transaction) {
+  try {
+    const idrole = 3;
+    let cashierID, modalItem = 0, profit;
+    const transType = 'PENJUALAN';
+    // nomor transaksi
+    const [genRows] = await db100.execute(q.transaction.genSellNumber);
+    const number = genRows[0].trx_no;
 
-module.exports = { findUser, getGoodsList, getGoodsPricePerGram, countPricePerItem };
+    // data dari transaksi
+    const itemIds = transaction.items.map(item => item.id_item);
+    const items = transaction.items;
+    const cashier = transaction.cashier;
+    const location = transaction.location;
+    const grandTotal = transaction.summary.grandTotal;
+    const discount = transaction.summary.totalDiscount;
+    const payment = transaction.summary.paymentAmount;
+    const change = transaction.summary.change;
+
+    // ambil id kasir
+    const [cashierRows] = await db100.execute(q.auth.searchUsername, [cashier, idrole]);
+    cashierID = cashierRows[0].id_akun;
+
+    // ambil modal tiap item, lalu jumlahkan
+    for (const id of itemIds) {
+      const [rows] = await db100.execute(q.transaction.getModal, [id]);
+      if (rows.length > 0) {
+        modalItem += parseFloat(rows[0].modal);
+      }
+    }
+
+    // hitung profit
+    profit = (payment - change) - modalItem;
+
+    // simpan master transaksi
+    await db100.execute(q.transaction.insertSellMaster, [
+      number, cashierID, location, grandTotal, modalItem, profit, discount, payment, change
+    ]);
+
+    for (const item of items) {
+      for (const b of item.breakdown) {
+        await db100.execute(q.transaction.insertSellDetail, [
+          number,
+          b.idppg,
+          item.id_item,
+          transType,
+          b.berat * b.qty,
+          b.harga,
+          b.subtotal,
+          (item.discount || 0) / item.breakdown.length
+        ]);
+      }
+    }
+
+    return { number, cashierID, location, grandTotal, modalItem, profit, discount, payment, change }
+  } catch (error) {
+    console.error('saveSellTransaction error:', error);
+    throw error;
+  }
+}
+
+
+
+module.exports = { findUser, getGoodsList, getGoodsPricePerGram, countPricePerItem, saveSellTransaction };

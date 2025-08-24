@@ -64,4 +64,17 @@ router
 		}
     })
 
+router 
+    .route('/gettransactionbycashier')
+    .get(roles.sessionCheckMiddleware, async (req, res) => {
+        try{
+            const {startDate, endDate, username} = req.query;
+            const result = await dm.transactionByCashier(startDate, endDate, username)
+            res.status(200).json({translist: result});
+        }catch (error) {
+			console.error('Error get transaction by cashier:', error);
+			res.status(500).json({message: 'Error get transaction by cashier', log: error});
+		}
+    })
+
 module.exports = router;

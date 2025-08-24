@@ -159,6 +159,19 @@ async function saveSellTransaction(transaction) {
   }
 }
 
+async function transactionByCashier(startDate, endDate, username) {
+  try {
+    const [rows] = await db100.execute(q.transaction.transactionByCashier, [startDate, endDate, username, username]);
+    const data = rows[0];
+
+    return data;
+  } catch (error) {
+    console.error('transactionByCashier error:', error);
+    throw error;
+  }
+}
 
 
-module.exports = { findUser, getGoodsList, getGoodsPricePerGram, countPricePerItem, saveSellTransaction };
+module.exports = { 
+  findUser, getGoodsList, getGoodsPricePerGram, countPricePerItem, saveSellTransaction, transactionByCashier
+};

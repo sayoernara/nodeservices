@@ -63,12 +63,16 @@ router
 			res.status(500).json({message: 'Error save transaction', log: error});
 		}
     })
-
+    
 router 
     .route('/gettransactionbycashier')
     .get(roles.sessionCheckMiddleware, async (req, res) => {
         try{
-            const {startDate, endDate, username} = req.query;
+            const start = req.query.startDate;
+            const end = req.query.endDate;
+            const username  = req.query.username;
+            const startDate = start+' '+'00:00:00';
+            const endDate = end+' '+'00:00:00';
             const result = await dm.transactionByCashier(startDate, endDate, username)
             res.status(200).json({translist: result});
         }catch (error) {

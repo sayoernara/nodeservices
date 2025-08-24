@@ -162,7 +162,7 @@ async function saveSellTransaction(transaction) {
 async function transactionByCashier(startDate, endDate, username) {
   try {
     const [rows] = await db100.execute(q.transaction.transactionByCashier, [startDate, endDate, username, username]);
-    const data = rows[0];
+    const data = rows;
 
     return data;
   } catch (error) {
@@ -171,7 +171,4 @@ async function transactionByCashier(startDate, endDate, username) {
   }
 }
 
-
-module.exports = { 
-  findUser, getGoodsList, getGoodsPricePerGram, countPricePerItem, saveSellTransaction, transactionByCashier
-};
+module.exports = { findUser, getGoodsList, getGoodsPricePerGram, countPricePerItem, saveSellTransaction, transactionByCashier };

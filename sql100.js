@@ -171,4 +171,81 @@ async function transactionByCashier(startDate, endDate, username) {
   }
 }
 
-module.exports = { findUser, getGoodsList, getGoodsPricePerGram, countPricePerItem, saveSellTransaction, transactionByCashier };
+async function saveReturTransaction(transaction) {
+  try {
+    const idrole = 3;
+    let cashierID, modalItem = 0, profit;
+    const transType = 'PENJUALAN';
+    // nomor transaksi
+    const [genRows] = await db100.execute(q.transaction.genExcNumber);
+    const number = genRows[0].trx_no;
+
+    // data dari transaksi
+    const itemIds = transaction.items.map(item => item.id_item);
+    const items = transaction.items;
+    const cashier = transaction.cashier;
+    const location = transaction.location;
+    const grandTotal = transaction.summary.grandTotal;
+    const discount = transaction.summary.totalDiscount + transaction.summary.tradeInTotal;
+    const payment = transaction.summary.paymentAmount;
+    const change = transaction.summary.change;
+
+    // ambil id kasir
+    const [cashierRows] = await db100.execute(q.auth.searchUsername, [cashier, idrole]);
+    cashierID = cashierRows[0].id_akun;
+
+    // ambil modal tiap item, lalu jumlahkan
+    for (const id of itemIds) {
+      const [rows] = await db100.execute(q.transaction.getModal, [id]);
+      if (rows.length > 0) {
+        modalItem += parseFloat(rows[0].modal);
+      }
+    }
+
+    // hitung profit
+    profit = (payment - change) - modalItem;
+
+    // simpan master transaksi
+    await db100.execute(q.transaction.insertSellMaster, [
+      number, cashierID, location, grandTotal, modalItem, profit, discount, payment, change
+    ]);
+
+    // detail transaksi
+    for (const item of items) {
+      // ambil daftar harga per gram untuk item ini
+      const [hargaRows] = await db100.execute(q.goods.getPriceByItem, [item.id_item]);
+    
+      let selected = null;
+      if (item.totalWeight >= 1000) {
+        selected = hargaRows.find(r => r.berat === 1000);
+      } else {
+        selected = hargaRows.find(r => r.berat <= item.totalWeight);
+      }
+    
+      if (!selected) {
+        throw new Error(`Harga per gram tidak ditemukan untuk item ${item.id_item} dengan berat ${item.totalWeight}`);
+      }
+    
+      await db100.execute(q.transaction.insertSellDetail, [
+        number,
+        selected.id_ppg,      // id_ppg hasil query
+        item.id_item,
+        item.type,
+        item.totalWeight,
+        item.originalPrice,
+        item.finalPrice,
+        item.discount
+      ]);
+    }
+
+    return { number, cashierID, location, grandTotal, modalItem, profit, discount, payment, change }
+  } catch (error) {
+    console.error('saveSellTransaction error:', error);
+    throw error;
+  }
+}
+
+module.exports = { 
+  findUser, getGoodsList, getGoodsPricePerGram, countPricePerItem, 
+  saveSellTransaction, transactionByCashier, saveReturTransaction 
+};

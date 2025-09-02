@@ -81,4 +81,17 @@ router
 		}
     })
 
+router
+    .route('/savereturtransaction')
+    .post(roles.sessionCheckMiddleware, async (req, res) => {
+        try{
+            const transaction = req.body.transaction;
+            const saveReturTransaction = await dm.saveReturTransaction(transaction);
+            res.status(200).json({message: saveReturTransaction});
+        }catch (error) {
+			console.error('Error save retur transaction:', error);
+			res.status(500).json({message: 'Error save retur transaction', log: error});
+		}
+    })
+
 module.exports = router;

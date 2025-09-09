@@ -94,4 +94,26 @@ router
 		}
     })
 
+ router
+    .route('/getvoucherbyphone')
+    .get(roles.sessionCheckMiddleware, async (req, res) => {
+        try{
+            const phone = req.query.phone;
+            const searchMember = await dm.searchMember(phone);
+            if (searchMember.length === 0) {
+                return res.status(404).json({message: 'Member not found', nominal: 0});
+            }else{
+                const voucher = await dm.getVoucherByPhone(phone);
+                if (!voucher) {
+                  return res.status(200).json({ message: 'Tidak ada voucher aktif', voucher: null });
+                }
+                res.status(200).json({ voucher })
+            }
+            
+        }catch (error) {
+			console.error('Error get voucher by phone:', error);
+			res.status(500).json({message: 'Error get voucher by phone', log: error});
+		}
+    })
+
 module.exports = router;

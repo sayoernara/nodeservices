@@ -101,7 +101,7 @@ async function countPricePerItem(cart) {
 async function saveSellTransaction(transaction) {
   try {
     const idrole = 3;
-    let cashierID, modalItem = 0, profit, voucherid;
+    let cashierID, modalItem = 0, profit, voucherid, telepon;
     const transType = 'PENJUALAN';
     const [genRows] = await db100.execute(q.transaction.genSellNumber);
     const number = genRows[0].trx_no;
@@ -112,6 +112,7 @@ async function saveSellTransaction(transaction) {
     const location = transaction.location;
     const grandTotal = transaction.summary.grandTotal;
     const voucher = transaction.summary.voucherDiscount;
+    const phoneNumber = transaction.summary.phoneNumber;
     const idvoucher = transaction.summary.idVoucher;
     const discount = transaction.summary.totalDiscount;
     const payment = transaction.summary.paymentAmount;
@@ -121,6 +122,12 @@ async function saveSellTransaction(transaction) {
       voucherid = idvoucher;
     }else{
       voucherid = null;
+    }
+
+    if(phoneNumber){
+      telepon = phoneNumber;
+    }else{
+      telepon = null;
     }
 
     const [cashierRows] = await db100.execute(q.auth.searchUsername, [cashier, idrole]);
@@ -136,7 +143,7 @@ async function saveSellTransaction(transaction) {
     profit = (payment - change) - modalItem;
 
     await db100.execute(q.transaction.insertSellMaster, [
-      number, cashierID, location, voucherid, grandTotal, modalItem, profit, discount, payment, change
+      number, cashierID, location, voucherid, grandTotal, telepon, modalItem, profit, discount, payment, change
     ]);
 
     await db100.execute(q.transaction.burnVoucher, [voucherid]);
@@ -252,6 +259,9 @@ async function saveReturTransaction(transaction) {
 async function searchMember(phone) {
   try {
     const [rows] = await db100.execute(q.transaction.searchMember, [phone]);
+    if (rows.length === 0) {
+      await db100.execute(q.transaction.insertMemberByTransaction, [phone]);
+    }
     return rows[0] ? Number(rows[0].total) : 0;
   } catch (error) {
     console.error('searchMember error:', error);

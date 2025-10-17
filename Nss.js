@@ -21,7 +21,7 @@ app.use(helmet({
 const allowedOrigins = [
   "http://192.168.1.27:5000",
   "http://192.168.43.164:5000",
-  "http://192.168.43.247:5000",
+  "http://192.168.0.7:5000",
   "http://182.253.186.98",
   "https://cashier.sayoernara.com" 
 ];
@@ -29,8 +29,7 @@ const allowedOrigins = [
 app.use(cookieParser());
 app.use(cors({
   origin: function (origin, callback) {
-    if (!origin) return callback(null, true);
-    if (allowedOrigins.includes(origin)) {
+    if (!origin || allowedOrigins.includes(origin)) {
       callback(null, true);
     } else {
       callback(new Error("Origin tidak diizinkan oleh CORS"));

@@ -103,9 +103,11 @@ async function saveSellTransaction(transaction) {
     const idrole = 3;
     let cashierID, modalItem = 0, profit, voucherid, telepon;
     const transType = 'PENJUALAN';
+    // nomor transaksi
     const [genRows] = await db100.execute(q.transaction.genSellNumber);
     const number = genRows[0].trx_no;
 
+    // data dari transaksi
     const itemIds = transaction.items.map(item => item.id_item);
     const items = transaction.items;
     const cashier = transaction.cashier;
@@ -117,22 +119,24 @@ async function saveSellTransaction(transaction) {
     const discount = transaction.summary.totalDiscount;
     const payment = transaction.summary.paymentAmount;
     const change = transaction.summary.change;
-
+    
     if(idvoucher){
       voucherid = idvoucher;
     }else{
       voucherid = null;
     }
-
+    
     if(phoneNumber){
       telepon = phoneNumber;
     }else{
       telepon = null;
     }
 
+    // ambil id kasir
     const [cashierRows] = await db100.execute(q.auth.searchUsername, [cashier, idrole]);
     cashierID = cashierRows[0].id_akun;
 
+    // ambil modal tiap item, lalu jumlahkan
     for (const id of itemIds) {
       const [rows] = await db100.execute(q.transaction.getModal, [id]);
       if (rows.length > 0) {
@@ -140,12 +144,14 @@ async function saveSellTransaction(transaction) {
       }
     }
 
+    // hitung profit
     profit = (payment - change) - modalItem;
 
+    // simpan master transaksi
     await db100.execute(q.transaction.insertSellMaster, [
       number, cashierID, location, voucherid, grandTotal, telepon, modalItem, profit, discount, payment, change
     ]);
-
+    
     await db100.execute(q.transaction.burnVoucher, [voucherid]);
 
     for (const item of items) {
@@ -217,7 +223,7 @@ async function saveReturTransaction(transaction) {
     profit = (payment - change) - modalItem;
 
     // simpan master transaksi
-    await db100.execute(q.transaction.insertSellMaster, [
+    await db100.execute(q.transaction.insertReturSellMaster, [
       number, cashierID, location, grandTotal, modalItem, profit, discount, payment, change
     ]);
 
@@ -259,15 +265,18 @@ async function saveReturTransaction(transaction) {
 async function searchMember(phone) {
   try {
     const [rows] = await db100.execute(q.transaction.searchMember, [phone]);
-    if (rows.length === 0) {
-      await db100.execute(q.transaction.insertMemberByTransaction, [phone]);
+    const total = Number(rows[0]?.total || 0);
+
+    if (total === 0) {
+      await db100.execute(q.transaction.insertMemberByTransaction, [phone, phone]);
     }
-    return rows[0] ? Number(rows[0].total) : 0;
+    return total;
   } catch (error) {
     console.error('searchMember error:', error);
     throw error;
   }
 }
+
 
 async function getVoucherByPhone(phone) {
   try {
@@ -285,7 +294,6 @@ async function getVoucherByPhone(phone) {
     throw error;
   }
 }
-
 
 module.exports = { 
   findUser, getGoodsList, getGoodsPricePerGram, countPricePerItem, 
